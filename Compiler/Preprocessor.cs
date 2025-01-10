@@ -13,7 +13,6 @@ namespace MintCompiler
         public static PreprocessorData Process(string filename)
         {
             string code = File.ReadAllText(filename);
-            code = RemoveComments(code);
             PreprocessorData pData = HandleDirectives(code);
 
             for (int i = 0; i < pData.Includes.Count; i++)
@@ -24,26 +23,6 @@ namespace MintCompiler
             }
 
             return pData;
-        }
-
-        /// <summary>
-        /// Removes all comments from raw code
-        /// </summary>
-        /// <param name="code">Raw code</param>
-        /// <returns>Raw code with comments removed</returns>
-        private static string RemoveComments(string code)
-        {
-            List<char> newCode = [];
-            int nested = 0;
-
-            foreach (char c in code)
-            {
-                if (c == '(') nested++;
-                else if (c == ')' && nested > 0) nested--;
-                else if (nested == 0) newCode.Add(c);
-            }
-
-            return String.Concat(newCode);
         }
 
         /// <summary>

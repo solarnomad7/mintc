@@ -64,7 +64,7 @@ namespace MintCompiler
                 }
                 else if (c == ')')
                 {
-                    tokens.Add(new Token(TokenType.PAREN_CLOSE, "("));
+                    tokens.Add(new Token(TokenType.PAREN_CLOSE, ")"));
                     continue;
                 }
                 else if (prefixes.Contains(c))
