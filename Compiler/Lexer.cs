@@ -27,9 +27,12 @@ namespace MintCompiler
                     if (c == '\n') inComment = false;
                     continue;
                 }
-                else if (inStringOrChar && (c == '"' || c == '\''))
+                else if (inStringOrChar)
                 {
-                    inStringOrChar = false;
+                    if (c == '"' || c == '\'')
+                    {
+                        inStringOrChar = false;
+                    }
                     tokenChars.Add(c);
                     continue;
                 }
