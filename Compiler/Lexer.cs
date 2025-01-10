@@ -20,9 +20,15 @@ namespace MintCompiler
             List<char> tokenChars = [];
 
             bool inStringOrChar = false;
+            bool inComment = false;
             foreach (char c in code)
             {
-                if (inStringOrChar && (c == '"' || c == '\''))
+                if (inComment)
+                {
+                    if (c == '\n') inComment = false;
+                    continue;
+                }
+                else if (inStringOrChar && (c == '"' || c == '\''))
                 {
                     inStringOrChar = false;
                     tokenChars.Add(c);
@@ -34,7 +40,7 @@ namespace MintCompiler
                     tokenChars = [];
                     continue;
                 }
-                else if (c == '[') // Handle single-character tokens
+                else if (c == '[')
                 {
                     tokens.Add(new Token(TokenType.LITERAL_ARR_BEGIN, "["));
                     continue;
@@ -58,8 +64,16 @@ namespace MintCompiler
                 {
                     inStringOrChar = true;
                 }
-
-                tokenChars.Add(c);
+                else if (c == '#')
+                {
+                    inComment = true;
+                    continue;
+                }
+                
+                if (c != '\t')
+                {
+                    tokenChars.Add(c);
+                }
             }
             tokens.Add(new Token(TokenType.EOF, string.Empty));
         }
