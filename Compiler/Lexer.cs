@@ -20,23 +20,12 @@ namespace MintCompiler
             List<char> tokenChars = [];
 
             bool inStringOrChar = false;
-            bool escaping = false;
             foreach (char c in code)
             {
-                if (inStringOrChar)
+                if (inStringOrChar && (c == '"' || c == '\''))
                 {
-                    if (!escaping && (c == '"' || c == '\''))
-                    {
-                        inStringOrChar = false;
-                    }
-
+                    inStringOrChar = false;
                     tokenChars.Add(c);
-                    if (escaping) escaping = false;
-
-                    if (c == '\\')
-                    {
-                        escaping = true;
-                    }
                     continue;
                 }
                 else if (c == ' ' || c == '\n')
