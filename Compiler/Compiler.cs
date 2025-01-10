@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Text;
 
 namespace MintCompiler
@@ -12,8 +13,7 @@ namespace MintCompiler
 
         private ushort numPointers = 0;
         private uint undefinedRefs = 0;
-        private int wordDefStartIdx = -1;
-        private string wordDefName = "";
+        private MemoryRegionInfo? regionDefInfo = null;
 
         /// <summary>
         /// Assembles Mint code into bytecode given a Lexer object.
@@ -40,12 +40,8 @@ namespace MintCompiler
             {
                 switch (token.Type)
                 {
-                    case TokenType.KEYWORD:
-                        HandleArrayDef(token.Content);
-                        break;
-                    case TokenType.WORD_DEF:
-                        wordDefStartIdx = bytes.Count;
-                        wordDefName = token.Content;
+                    case TokenType.REGION_DEF:
+                        HandleRegionDef(token.Content);
                         break;
                     case TokenType.LITERAL_NUM:
                         AssembleLiteralNum(Convert.ToInt32(token.Content));
@@ -73,76 +69,78 @@ namespace MintCompiler
         }
 
         /// <summary>
-        /// Handles array definitions (array, var, and string).
+        /// Handles a memory region definition
         /// </summary>
-        /// <param name="keyword">Array definition keyword</param>
-        private void HandleArrayDef(string keyword)
+        /// <param name="label">Region label</param>
+        private void HandleRegionDef(string label)
         {
+            Token token = lexer.NextToken();
+            if (token.Type != TokenType.PAREN_OPEN)
+            {
+                lexer.PreviousToken();
+                regionDefInfo = new MemoryRegionInfo(label, bytes.Count);
+                return;
+            }
+
             RegionType type = RegionType.INT8;
-            string label = "";
-            ushort size = 1;
+            ushort size = 0;
 
-            if (keyword == "array")
+            for (int i = 0; i < 2; i++)
             {
-                string typeStr = lexer.NextToken().Content;
-                if (typeStr == "*")
+                token = lexer.NextToken();
+                if (token.Type != TokenType.PAREN_CLOSE)
                 {
-                    type = RegionType.POINTER;
+                    (RegionType? typeOrNull, ushort? sizeOrNull) = GetRegionSigData(token);
+                    if (typeOrNull.HasValue) type = typeOrNull.GetValueOrDefault();
+                    else if (sizeOrNull.HasValue) size = sizeOrNull.GetValueOrDefault();
                 }
-                else
-                {
-                    type = (RegionType)(Convert.ToUInt32(typeStr) / 8);
-                }
-                label = lexer.NextToken().Content;
-                size = Convert.ToUInt16(lexer.NextToken().Content);
-            }
-            else if (keyword == "var")
-            {
-                string typeStr = lexer.NextToken().Content;
-                if (typeStr == "*")
-                {
-                    type = RegionType.POINTER;
-                }
-                else
-                {
-                    type = (RegionType)(Convert.ToUInt32(typeStr) / 8);
-                }
-                label = lexer.NextToken().Content;
-            }
-            else if (keyword == "string")
-            {
-                label = lexer.NextToken().Content;
-                size = (ushort)lexer.NextToken().Content.Length; // Get string literal length
-                lexer.PreviousToken();
             }
 
-            AssembleRegionDef(type, label, size);
+            if (size != 0)
+            {
+                AssembleRegionDef(type, label, size); // The size is known, so assemble the definition immediately
+            }
+            else
+            {
+                regionDefInfo = new MemoryRegionInfo(label, bytes.Count, type, 0); // Wait until we finish assembling the memory region before adding the definition
+            }
+        }
 
-            Token content = lexer.NextToken();
-            if ((int)content.Type >= 4) // Next token isn't a literal
+        /// <summary>
+        /// Gather data from a memory region signature
+        /// </summary>
+        /// <param name="token">Data token</param>
+        /// <returns>Tuple containing either region type or size</returns>
+        private static (RegionType?, ushort?) GetRegionSigData(Token token)
+        {
+            if (token.Type == TokenType.IDENTIFIER)
             {
-                bytes.Add((byte)Op.END);
-                lexer.PreviousToken();
-            }
-            else if (content.Type == TokenType.LITERAL_STR)
-            {
-                char[] contentChars = content.Content.ToCharArray();
-                bytes.AddRange(Encoding.UTF8.GetBytes(contentChars));
-                bytes.Add((byte)Op.END);
-            }
-            else if (content.Type == TokenType.LITERAL_ARR_BEGIN)
-            {
-                (List<int> array, IntSize? intSize) = CollectArrayValues();
-                if (intSize != null)
+                RegionType type = RegionType.INT8;
+                switch (token.Content)
                 {
-                    AssembleRawArrayData(array, intSize.GetValueOrDefault());
+                    case "i8":
+                        type = RegionType.INT8;
+                        break;
+                    case "i16":
+                        type = RegionType.INT16;
+                        break;
+                    case "i32":
+                        type = RegionType.INT16;
+                        break;
+                    case "*":
+                        type = RegionType.POINTER;
+                        break;
                 }
-                bytes.Add((byte)Op.END);
+
+                return (type, null);
             }
-            else if (content.Type == TokenType.LITERAL_NUM || content.Type == TokenType.LITERAL_CHAR)
+            else if (token.Type == TokenType.LITERAL_NUM)
             {
-                AssembleLiteralNum(Convert.ToInt32(content.Content), false);
-                bytes.Add((byte)Op.END);
+                return (null, Convert.ToUInt16(token.Content));
+            }
+            else
+            {
+                return (null, null);
             }
         }
 
@@ -277,12 +275,6 @@ namespace MintCompiler
                 bytes.Add((byte)Op.PUSHPTR);
                 bytes.AddRange(id);
             }
-            else if (prefix == "%")
-            {
-                bytes.Add((byte)Op.PUSHPTR);
-                bytes.AddRange(id);
-                bytes.Add((byte)Op.ADDR);
-            }
         }
 
         /// <summary>
@@ -336,8 +328,12 @@ namespace MintCompiler
                 case "halt":    asmIdentifier.Add((byte)Op.HALT); break;
                 case "end":
                     asmIdentifier.Add((byte)Op.END);
-                    AssembleRegionDef(RegionType.INT8, wordDefName, (ushort)(bytes.Count - wordDefStartIdx + 1), wordDefStartIdx);
-                    wordDefStartIdx = -1;
+                    if (regionDefInfo.HasValue)
+                    {
+                        MemoryRegionInfo info = regionDefInfo.GetValueOrDefault();
+                        AssembleRegionDef(info.Type, info.Label, info.Size, info.StartIdx);
+                        regionDefInfo = null;
+                    }
                     break;
                 default:
                     byte[] id = TryCreateLabel(identifier);
@@ -410,19 +406,8 @@ namespace MintCompiler
             Token token = lexer.NextToken();
             while (token.Type != TokenType.EOF)
             {
-                if (token.Type == TokenType.WORD_DEF)
+                if (token.Type == TokenType.REGION_DEF)
                 {
-                    labels.TryAdd(token.Content.ToLower(), IntUtility.GetUInt16Bytes(numPointers++));
-                }
-                else if (token.Type == TokenType.KEYWORD && token.Content == "string")
-                {
-                    token = lexer.NextToken();
-                    labels.TryAdd(token.Content.ToLower(), IntUtility.GetUInt16Bytes(numPointers++));
-                }
-                else if (token.Type == TokenType.KEYWORD && (token.Content == "var" || token.Content == "array"))
-                {
-                    lexer.NextToken();
-                    token = lexer.NextToken();
                     labels.TryAdd(token.Content.ToLower(), IntUtility.GetUInt16Bytes(numPointers++));
                 }
                 token = lexer.NextToken();
@@ -431,5 +416,13 @@ namespace MintCompiler
         }
 
         private enum RegionType { INT8 = 1, INT16 = 2, POINTER = 3, INT32 = 4 }
+
+        private struct MemoryRegionInfo(string label, int startIdx, RegionType type=RegionType.INT8, ushort size=0)
+        {
+            public string Label = label;
+            public RegionType Type = type;
+            public ushort Size = size;
+            public int StartIdx = startIdx;
+        }
     }
 }

@@ -15,8 +15,9 @@ namespace MintCompiler
         LITERAL_ARR_END = 4,
         IDENTIFIER = 5,
         IDENTIFIER_PREFIX = 6,
-        WORD_DEF = 7,
-        KEYWORD = 8,
-        EOF = 9,
+        REGION_DEF = 7,
+        PAREN_OPEN = 8,
+        PAREN_CLOSE = 9,
+        EOF = 10,
     }
 }

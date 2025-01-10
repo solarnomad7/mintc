@@ -4,7 +4,6 @@ namespace MintCompiler
 {
     public class Lexer(string code)
     {
-        private static readonly string[] keywords = ["array", "var", "string"];
         private static readonly char[] prefixes = ['@'];
 
         private readonly string code = code + "\n"; // Ensure the last token is read
@@ -34,7 +33,7 @@ namespace MintCompiler
                     tokenChars.Add(c);
                     continue;
                 }
-                else if (c == ' ' || c == '\n')
+                else if (c == ' ' || c == '\n' || c == ':')
                 {
                     HandleToken(tokenChars);
                     tokenChars = [];
@@ -53,6 +52,16 @@ namespace MintCompiler
                         tokenChars = [];
                     }
                     tokens.Add(new Token(TokenType.LITERAL_ARR_END, "]"));
+                    continue;
+                }
+                else if (c == '(')
+                {
+                    tokens.Add(new Token(TokenType.PAREN_OPEN, "("));
+                    continue;
+                }
+                else if (c == ')')
+                {
+                    tokens.Add(new Token(TokenType.PAREN_CLOSE, "("));
                     continue;
                 }
                 else if (prefixes.Contains(c))
@@ -131,11 +140,7 @@ namespace MintCompiler
             }
             else if (tokenStr.EndsWith(':'))
             {
-                tokens.Add(new Token(TokenType.WORD_DEF, tokenStr[..(tokenStr.Length-1)]));
-            }
-            else if (keywords.Contains(tokenStr))
-            {
-                tokens.Add(new Token(TokenType.KEYWORD, tokenStr));
+                tokens.Add(new Token(TokenType.REGION_DEF, tokenStr[..(tokenStr.Length-1)]));
             }
             else
             {
