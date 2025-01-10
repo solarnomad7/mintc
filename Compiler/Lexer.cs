@@ -33,7 +33,7 @@ namespace MintCompiler
                     tokenChars.Add(c);
                     continue;
                 }
-                else if (c == ' ' || c == '\n' || c == ':')
+                else if (c == ' ' || c == '\n')
                 {
                     HandleToken(tokenChars);
                     tokenChars = [];

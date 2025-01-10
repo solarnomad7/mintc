@@ -48,10 +48,10 @@ namespace MintCompiler
                         break;
                     case TokenType.LITERAL_ARR_BEGIN:
                         (List<int> array, IntSize? intSize) = CollectArrayValues();
-                        if (intSize != null) AssembleLiteralArray(array, intSize.Value);
+                        if (intSize != null) AssembleRawArrayData(array, intSize.GetValueOrDefault());
                         break;
                     case TokenType.LITERAL_STR:
-                        AssembleLiteralArray([.. token.Content], IntSize.INT8, true, true);
+                        AssembleLiteralString(token.Content, true);
                         break;
                     case TokenType.LITERAL_CHAR:
                         AssembleLiteralNum(token.Content[0]);
@@ -94,6 +94,7 @@ namespace MintCompiler
                     if (typeOrNull.HasValue) type = typeOrNull.GetValueOrDefault();
                     else if (sizeOrNull.HasValue) size = sizeOrNull.GetValueOrDefault();
                 }
+                else break;
             }
 
             if (size != 0)
@@ -169,37 +170,22 @@ namespace MintCompiler
         }
 
         /// <summary>
-        /// Assembles an array literal.
+        /// Assembles a string literal and adds a push length instruction.
         /// </summary>
-        /// <param name="array">Array data</param>
-        /// <param name="bits">Array item size</param>
-        /// <param name="pushLength">Add a push instruction for the array length</param>
-        /// <param name="reverse">Reverse the array</param>
-        private void AssembleLiteralArray(List<int> array, IntSize bits, bool pushLength=false, bool reverse=false)
+        /// <param name="str"></param>
+        /// <param name="reverse"></param>
+        private void AssembleLiteralString(string str, bool reverse=false)
         {
-            if (reverse) array.Reverse();
+            List<int> strValues = [.. str];
+            if (reverse) strValues.Reverse();
 
-            if (bits == IntSize.INT8)
-            {
-                bytes.Add((byte)Op.ARR8);
-            }
-            else if (bits == IntSize.INT16)
-            {
-                bytes.Add((byte)Op.ARR16);
-            }
-            else if (bits == IntSize.INT32)
-            {
-                bytes.Add((byte)Op.ARR32);
-            }
-
-            AssembleRawArrayData(array, bits);
+            bytes.Add((byte)Op.ARR8);
+            AssembleRawArrayData(strValues, IntSize.INT8);
             bytes.Add((byte)Op.ENDLIT);
 
-            if (pushLength)
-            {
-                bytes.Add((byte)Op.PUSH16);
-                bytes.AddRange(IntUtility.GetUInt16Bytes((ushort)array.Count));
-            }
+            // Push string length
+            bytes.Add((byte)Op.PUSH16);
+            bytes.AddRange(IntUtility.GetUInt16Bytes((ushort)strValues.Count));
         }
 
         /// <summary>
@@ -389,6 +375,13 @@ namespace MintCompiler
                     pointerArray = true;
                     content = lexer.NextToken();
                     array.Add(BinaryPrimitives.ReadUInt16BigEndian(TryCreateLabel(content.Content)));
+                }
+                else if (content.Type == TokenType.LITERAL_STR)
+                {
+                    foreach (char c in content.Content)
+                    {
+                        array.Add(c);
+                    }
                 }
                 content = lexer.NextToken();
             }
