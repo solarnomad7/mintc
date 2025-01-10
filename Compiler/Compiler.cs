@@ -137,7 +137,6 @@ namespace MintCompiler
                 {
                     AssembleRawArrayData(array, intSize.GetValueOrDefault());
                 }
-                Console.WriteLine("adding end");
                 bytes.Add((byte)Op.END);
             }
             else if (content.Type == TokenType.LITERAL_NUM || content.Type == TokenType.LITERAL_CHAR)
@@ -246,9 +245,6 @@ namespace MintCompiler
 
             uint bits = type == RegionType.POINTER ? 2 : (uint)type;
             byte[] bSize = IntUtility.GetUInt16Bytes((ushort)(size * bits));
-
-            Console.WriteLine("size: {0:X} {1:X}", bSize[0], bSize[1]);
-            Console.WriteLine("label: {0:X} {1:X}", bLabel[0], bLabel[1]);
 
             if (insertIdx == -1)
             {

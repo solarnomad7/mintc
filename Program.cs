@@ -25,7 +25,6 @@ namespace MintCompiler
                 Token t = lexer.NextToken();
                 while (t.Type != TokenType.EOF)
                 {
-                    Console.WriteLine(t.Type.ToString() + ": " + t.Content);
                     t = lexer.NextToken();
                 }
             }
