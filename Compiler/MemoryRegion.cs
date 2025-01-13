@@ -4,18 +4,20 @@ namespace MintCompiler
 {
     public class MemoryRegion
     {
+        public const int HeaderLength = 7;
+        
         public List<byte> Data { get; set; } = [];
+        public byte[] Id { get; set; }
         public ushort Length { get; }
         public List<ushort> PointerIndices { get; }= [];
         
         private readonly RegionType type;
-        private readonly byte[] id;
         private ushort numPointers = 0;
 
         public MemoryRegion(RegionType type, byte[] id, ushort initLen=0)
         {
             this.type = type;
-            this.id = id;
+            Id = id;
             Length = initLen;
         }
 
@@ -30,7 +32,7 @@ namespace MintCompiler
 
             type = (RegionType)regBytes[0x01];
             Length = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x02], regBytes[0x03]]);
-            id = [regBytes[0x04], regBytes[0x05]];
+            Id = [regBytes[0x04], regBytes[0x05]];
             numPointers = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x06], regBytes[0x07]]);
 
             int byteI = 0x08;
@@ -39,7 +41,7 @@ namespace MintCompiler
                 PointerIndices.Add(BinaryPrimitives.ReadUInt16BigEndian([regBytes[byteI++], regBytes[byteI++]]));
             }
 
-            for (int i = 0; i < Length + 1; i++)
+            for (int i = 0; i < Length; i++)
             {
                 Data.Add(regBytes[byteI++]);
             }
@@ -68,14 +70,13 @@ namespace MintCompiler
                 serLength = (ushort)Data.Count;
             }
             serData.AddRange(IntUtility.GetUInt16Bytes(serLength));
-            serData.AddRange(id);
+            serData.AddRange(Id);
             serData.AddRange(IntUtility.GetUInt16Bytes(numPointers));
             foreach (ushort pointerIdx in PointerIndices)
             {
                 serData.AddRange(IntUtility.GetUInt16Bytes(pointerIdx));
             }
             serData.AddRange(Data);
-            serData.Add((byte)Op.END);
 
             return serData;
         }

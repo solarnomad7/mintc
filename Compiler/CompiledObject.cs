@@ -5,7 +5,7 @@ namespace MintCompiler
     public class CompiledObject
     {
         public bool Valid { get; }
-        public ushort NumPointers { get; }
+        public ushort NumRegions { get; }
         public Dictionary<string, byte[]> Labels { get; } = [];
         public List<MemoryRegion> Regions { get; } = [];
 
@@ -23,10 +23,11 @@ namespace MintCompiler
                 return;
             }
 
-            NumPointers = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(0x04, 2));
+            NumRegions = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(0x04, 2));
+            ushort numLabels = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(0x06, 2));
 
-            int byteI = 0x06;
-            for (int i = 0; i < NumPointers; i++)
+            int byteI = 0x08;
+            for (int i = 0; i < numLabels; i++)
             {
                 byte[] id = [bytes[byteI++], bytes[byteI++]];
                 int len = bytes[byteI++];
@@ -40,13 +41,13 @@ namespace MintCompiler
                 Labels.Add(string.Join("", label), id);
             }
 
-            for (int i = 0; i < NumPointers; i++)
+            for (int i = 0; i < NumRegions; i++)
             {
                 MemoryRegion newRegion = new(bytes, byteI);
                 Regions.Add(newRegion);
-                byteI += newRegion.Length - 1;
+                byteI += newRegion.Length + MemoryRegion.HeaderLength + 1;
             }
-
+            
             Valid = true;
         }
     }

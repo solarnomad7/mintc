@@ -31,7 +31,7 @@ namespace MintCompiler
                     linkedLabels.TryAdd(label.Key, IntUtility.GetUInt16Bytes(nextFreeRef++));
                 }
 
-                numRefs += obj.NumPointers;
+                numRefs += obj.NumRegions;
             }
 
             foreach (CompiledObject obj in objects)
@@ -43,7 +43,7 @@ namespace MintCompiler
                     
                     foreach (MemoryRegion region in obj.Regions)
                     {
-                        output.AddRange(region.Data);
+                        output.AddRange(region.Serialize());
                     }
                 }
             }
@@ -141,6 +141,7 @@ namespace MintCompiler
         {
             foreach (MemoryRegion region in obj.Regions)
             {
+                region.Id = GetReplacementID(region.Id, replaceIds);
                 foreach (ushort idx in region.PointerIndices)
                 {
                     byte[] localId = [.. region.Data.GetRange(idx, 2)];

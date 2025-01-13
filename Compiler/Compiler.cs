@@ -13,7 +13,7 @@ namespace MintCompiler
 
         private int currentRegion = -1;
         private ushort numPointers = 0;
-        private uint undefinedRefs = 0;
+        private ushort undefinedRefs = 0;
 
         /// <summary>
         /// Assembles Mint code into bytecode given a Lexer object.
@@ -28,7 +28,8 @@ namespace MintCompiler
 
             List<byte> output = [.. "MOBJ"u8.ToArray()];
 
-            output.AddRange(IntUtility.GetUInt16Bytes(numPointers));
+            output.AddRange(IntUtility.GetUInt16Bytes((ushort)regions.Count));
+            output.AddRange(IntUtility.GetUInt16Bytes((ushort)(numPointers + undefinedRefs)));
             foreach (KeyValuePair<string, byte[]> label in labels)
             {
                 output.AddRange(label.Value);
@@ -298,6 +299,7 @@ namespace MintCompiler
                 case "l":       AddByteRange([(byte)Op.PUSH8, 3, (byte)Op.PUSHI]); break;
                 case "halt":    AddByte((byte)Op.HALT); break;
                 case "end":
+                    AddByte((byte)Op.END);
                     currentRegion = -1;
                     break;
                 default:
