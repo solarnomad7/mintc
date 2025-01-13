@@ -66,8 +66,8 @@ namespace MintCompiler
                         AssembleLiteralNum(Convert.ToInt32(token.Content));
                         break;
                     case TokenType.LITERAL_ARR_BEGIN:
-                        (List<int> array, IntSize? intSize) = CollectArrayValues();
-                        if (intSize != null) AssembleRawArrayData(array, intSize.GetValueOrDefault());
+                        (List<int> array, IntSize? intSize, bool pointerArray) = CollectArrayValues();
+                        if (intSize != null) AssembleRawArrayData(array, intSize.GetValueOrDefault(), pointerArray);
                         break;
                     case TokenType.LITERAL_STR:
                         AssembleLiteralString(token.Content, true);
@@ -212,7 +212,8 @@ namespace MintCompiler
         /// </summary>
         /// <param name="array">Array data</param>
         /// <param name="bits">Array item size</param>
-        private void AssembleRawArrayData(List<int> array, IntSize bits)
+        /// <param name="pointerArray">This is an array of pointers</param>
+        private void AssembleRawArrayData(List<int> array, IntSize bits, bool pointerArray=false)
         {
             if (bits == IntSize.INT8)
             {
@@ -220,6 +221,7 @@ namespace MintCompiler
             }
             else if (bits == IntSize.INT16)
             {
+                if (pointerArray) regions[currentRegion].AddPointer();
                 foreach (int v in array)
                 {
                     AddByteRange(IntUtility.GetInt16Bytes((short)v));
@@ -333,8 +335,9 @@ namespace MintCompiler
         /// <summary>
         /// Collects array values (integers or pointers) into a list.
         /// </summary>
-        /// <returns>Tuple containing a list with all array values and the maximum integer size</returns>
-        private (List<int>, IntSize?) CollectArrayValues()
+        /// <returns>Tuple containing a list with all array values, the maximum integer size, and a boolean
+        /// that's true if the array contains pointers.</returns>
+        private (List<int>, IntSize?, bool) CollectArrayValues()
         {
             List<int> array = [];
             int largest = 0;
@@ -368,7 +371,7 @@ namespace MintCompiler
 
             IntSize? intSize = pointerArray ? IntSize.INT16 : IntUtility.GetIntSize(largest);
 
-            return (array, intSize);
+            return (array, intSize, pointerArray);
         }
 
         /// <summary>
