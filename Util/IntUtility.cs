@@ -59,7 +59,7 @@ namespace MintCompiler
         /// <returns>Bit size (8, 16, or 32)</returns>
         public static IntSize? GetIntSize(int num)
         {
-            if (num < Byte.MaxValue && num > Byte.MinValue)
+            if (num < 128 && num > -128)
             {
                 return IntSize.INT8;
             }
