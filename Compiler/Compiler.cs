@@ -245,7 +245,7 @@ namespace MintCompiler
             byte[] id = TryCreateLabel(idLabel);
             if (prefix == "@")
             {
-                AddByte((byte)Op.PUSHPTR);
+                AddByte((byte)Op.PUSH16);
                 regions[currentRegion].AddPointer();
                 AddByteRange(id);
             }
@@ -304,7 +304,7 @@ namespace MintCompiler
                     break;
                 default:
                     byte[] id = TryCreateLabel(identifier);
-                    AddByte((byte)Op.PUSHPTR);
+                    AddByte((byte)Op.PUSH16);
                     regions[currentRegion].AddPointer();
                     AddByteRange([
                         id[0],
