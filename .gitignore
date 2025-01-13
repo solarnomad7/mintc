@@ -2,3 +2,4 @@
 /obj/*
 *.code-workspace
 *.json
+*.txt

@@ -13,7 +13,7 @@ namespace MintCompiler
         ARR8            = 0x15,
         ARR16           = 0x16,
         ARR32           = 0x17,
-        ENDLIT          = 0x18,
+        ENDARR          = 0x18,
         PUSHPTR         = 0x19,
         CALL            = 0x20,
         IF              = 0x21,

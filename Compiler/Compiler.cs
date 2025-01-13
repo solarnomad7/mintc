@@ -8,26 +8,44 @@ namespace MintCompiler
     {
         private readonly Lexer lexer = lexer;
 
-        private readonly List<byte> bytes = [];
         private readonly Dictionary<string, byte[]> labels = [];
+        private readonly List<MemoryRegion> regions = [];
 
+        private int currentRegion = -1;
         private ushort numPointers = 0;
         private uint undefinedRefs = 0;
-        private MemoryRegionInfo? regionDefInfo = null;
 
         /// <summary>
         /// Assembles Mint code into bytecode given a Lexer object.
         /// </summary>
-        /// <returns>CompiledObject</returns>
-        public CompiledObject Assemble()
+        /// <returns>Raw bytecode</returns>
+        public List<byte> Assemble()
         {
             lexer.Tokenize();
 
             GetLabels();
             AssembleInstructions();
-            bytes.Add((byte)Op.END_FILE);
 
-            return new CompiledObject([.. bytes], labels, numPointers);
+            List<byte> output = [.. "MOBJ"u8.ToArray()];
+
+            output.AddRange(IntUtility.GetUInt16Bytes(numPointers));
+            foreach (KeyValuePair<string, byte[]> label in labels)
+            {
+                output.AddRange(label.Value);
+                output.Add((byte)label.Key.Length);
+                foreach (char c in label.Key)
+                {
+                    output.Add((byte)c);
+                }
+            }
+            
+            foreach (MemoryRegion region in regions)
+            {
+                output.AddRange(region.Serialize());
+            }
+            output.Add((byte)Op.END_FILE);
+
+            return output;
         }
 
         /// <summary>
@@ -78,12 +96,13 @@ namespace MintCompiler
             if (token.Type != TokenType.PAREN_OPEN)
             {
                 lexer.PreviousToken();
-                regionDefInfo = new MemoryRegionInfo(label, bytes.Count);
+                regions.Add(new MemoryRegion(RegionType.INT8, TryCreateLabel(label)));
+                currentRegion = regions.Count - 1;
                 return;
             }
 
             RegionType type = RegionType.INT8;
-            ushort size = 0;
+            ushort len = 0;
 
             for (int i = 0; i < 2; i++)
             {
@@ -92,19 +111,18 @@ namespace MintCompiler
                 {
                     (RegionType? typeOrNull, ushort? sizeOrNull) = GetRegionSigData(token);
                     if (typeOrNull.HasValue) type = typeOrNull.GetValueOrDefault();
-                    else if (sizeOrNull.HasValue) size = sizeOrNull.GetValueOrDefault();
+                    else if (sizeOrNull.HasValue) len = sizeOrNull.GetValueOrDefault();
                 }
-                else break;
+                else
+                {
+                    lexer.PreviousToken();
+                    break;
+                }
             }
 
-            if (size != 0)
-            {
-                AssembleRegionDef(type, label, size); // The size is known, so assemble the definition immediately
-            }
-            else
-            {
-                regionDefInfo = new MemoryRegionInfo(label, bytes.Count, type, 0); // Wait until we finish assembling the memory region before adding the definition
-            }
+            MemoryRegion newRegion = new(type, TryCreateLabel(label), len);
+            regions.Add(newRegion);
+            currentRegion++;
         }
 
         /// <summary>
@@ -123,13 +141,11 @@ namespace MintCompiler
                         type = RegionType.INT8;
                         break;
                     case "i16":
+                    case "*":
                         type = RegionType.INT16;
                         break;
                     case "i32":
-                        type = RegionType.INT16;
-                        break;
-                    case "*":
-                        type = RegionType.POINTER;
+                        type = RegionType.INT32;
                         break;
                 }
 
@@ -155,16 +171,16 @@ namespace MintCompiler
             switch (IntUtility.GetIntSize(num))
             {
                 case IntSize.INT8:
-                    if (pushInstruction) bytes.Add((byte)Op.PUSH8);
-                    bytes.Add((byte)num);
+                    if (pushInstruction) AddByte((byte)Op.PUSH8);
+                    AddByte((byte)num);
                     break;
                 case IntSize.INT16:
-                    if (pushInstruction) bytes.Add((byte)Op.PUSH16);
-                    bytes.AddRange(IntUtility.GetInt16Bytes((short)num));
+                    if (pushInstruction) AddByte((byte)Op.PUSH16);
+                    AddByteRange(IntUtility.GetInt16Bytes((short)num));
                     break;
                 case IntSize.INT32:
-                    if (pushInstruction) bytes.Add((byte)Op.PUSH32);
-                    bytes.AddRange(IntUtility.GetInt32Bytes(num));
+                    if (pushInstruction) AddByte((byte)Op.PUSH32);
+                    AddByteRange(IntUtility.GetInt32Bytes(num));
                     break;
             }
         }
@@ -176,16 +192,18 @@ namespace MintCompiler
         /// <param name="reverse"></param>
         private void AssembleLiteralString(string str, bool reverse=false)
         {
-            List<int> strValues = [.. str];
+            List<char> strValues = [.. str];
             if (reverse) strValues.Reverse();
 
-            bytes.Add((byte)Op.ARR8);
-            AssembleRawArrayData(strValues, IntSize.INT8);
-            bytes.Add((byte)Op.ENDLIT);
+            foreach (char i in strValues)
+            {
+                AddByte((byte)Op.PUSH8);
+                AddByte((byte)i);
+            }
 
             // Push string length
-            bytes.Add((byte)Op.PUSH16);
-            bytes.AddRange(IntUtility.GetUInt16Bytes((ushort)strValues.Count));
+            AddByte((byte)Op.PUSH16);
+            AddByteRange(IntUtility.GetUInt16Bytes((ushort)strValues.Count));
         }
 
         /// <summary>
@@ -197,54 +215,22 @@ namespace MintCompiler
         {
             if (bits == IntSize.INT8)
             {
-                bytes.AddRange(array.Select(v => (byte)v));
+                AddByteRange(array.Select(v => (byte)v).ToArray());
             }
             else if (bits == IntSize.INT16)
             {
                 foreach (int v in array)
                 {
-                    bytes.AddRange(IntUtility.GetInt16Bytes((short)v));
+                    AddByteRange(IntUtility.GetInt16Bytes((short)v));
                 }
             }
             else if (bits == IntSize.INT32)
             {
                 foreach (int v in array)
                 {
-                    bytes.AddRange(IntUtility.GetInt32Bytes(v));
+                    AddByteRange(IntUtility.GetInt32Bytes(v));
                 }
             }
-        }
-
-        /// <summary>
-        /// Creates a memory region definition.
-        /// </summary>
-        /// <param name="bits">Bytes per value</param>
-        /// <param name="label">Label</param>
-        /// <param name="size">Number of values</param>
-        /// <param name="insertIdx">Index to insert the definition</param>
-        private void AssembleRegionDef(RegionType type, string label, ushort size, int insertIdx=-1)
-        {
-            byte bBits = Convert.ToByte(type);
-            byte[] bLabel = labels[label];
-
-            uint bits = type == RegionType.POINTER ? 2 : (uint)type;
-            byte[] bSize = IntUtility.GetUInt16Bytes((ushort)(size * bits));
-
-            if (insertIdx == -1)
-            {
-                bytes.AddRange([(byte)Op.DEF,
-                            bBits,
-                            bLabel[0], bLabel[1],
-                            bSize[0], bSize[1]]);
-            }
-            else
-            {
-                bytes.InsertRange(insertIdx, [(byte)Op.DEF,
-                                            bBits,
-                                            bLabel[0], bLabel[1],
-                                            bSize[0], bSize[1]]);
-            }
-            
         }
 
         /// <summary>
@@ -258,8 +244,9 @@ namespace MintCompiler
             byte[] id = TryCreateLabel(idLabel);
             if (prefix == "@")
             {
-                bytes.Add((byte)Op.PUSHPTR);
-                bytes.AddRange(id);
+                AddByte((byte)Op.PUSHPTR);
+                regions[currentRegion].AddPointer();
+                AddByteRange(id);
             }
         }
 
@@ -269,70 +256,61 @@ namespace MintCompiler
         /// <param name="identifier">Identifier</param>
         private void AssembleIdentifier(string identifier)
         {
-            List<byte> asmIdentifier = [];
-
             switch (identifier)
             {
-                case "pop":     asmIdentifier.Add((byte)Op.POP); break;
-                case "dup":     asmIdentifier.Add((byte)Op.DUP); break;
-                case "swap":    asmIdentifier.Add((byte)Op.SWAP); break;
-                case "over":    asmIdentifier.Add((byte)Op.OVER); break;
-                case "rot":     asmIdentifier.Add((byte)Op.ROT); break;
-                case "+":       asmIdentifier.Add((byte)Op.ADD); break;
-                case "-":       asmIdentifier.Add((byte)Op.SUB); break;
-                case "*":       asmIdentifier.Add((byte)Op.MUL); break;
-                case "/":       asmIdentifier.Add((byte)Op.DIV); break;
-                case "load":    asmIdentifier.Add((byte)Op.LOAD); break;
-                case "store":   asmIdentifier.Add((byte)Op.STORE); break;
-                case "len":     asmIdentifier.Add((byte)Op.SIZE); break;
-                case "emit":    asmIdentifier.Add((byte)Op.OUTCHAR); break;
-                case "display": asmIdentifier.Add((byte)Op.OUTINT); break;
-                case "addr":    asmIdentifier.Add((byte)Op.ADDR); break;
-                case "=":       asmIdentifier.Add((byte)Op.EQU); break;
-                case ">":       asmIdentifier.Add((byte)Op.GREATER); break;
-                case "<":       asmIdentifier.Add((byte)Op.LESS); break;
-                case ">=":      asmIdentifier.Add((byte)Op.GEQ); break;
-                case "<=":      asmIdentifier.Add((byte)Op.LEQ); break;
-                case "~":       asmIdentifier.Add((byte)Op.INVERT); break;
-                case "&":       asmIdentifier.Add((byte)Op.AND); break;
-                case "|":       asmIdentifier.Add((byte)Op.OR); break;
-                case "^":       asmIdentifier.Add((byte)Op.XOR); break;
-                case "<<":      asmIdentifier.Add((byte)Op.SLEFT); break;
-                case ">>":      asmIdentifier.Add((byte)Op.SRIGHT); break;
-                case "if":      asmIdentifier.Add((byte)Op.IF); break;
-                case "endif":   asmIdentifier.Add((byte)Op.ENDIF); break;
-                case "else":    asmIdentifier.Add((byte)Op.ELSE); break;
-                case "loop":    asmIdentifier.Add((byte)Op.LOOP); break;
-                case "repeat":  asmIdentifier.Add((byte)Op.REPEAT); break;
-                case "for":     asmIdentifier.Add((byte)Op.FOR); break;
-                case "next":    asmIdentifier.AddRange([(byte)Op.ADDI, (byte)Op.NEXT]); break;
-                case "break":   asmIdentifier.Add((byte)Op.BREAK); break;
-                case "i":       asmIdentifier.AddRange([(byte)Op.PUSH8, 0, (byte)Op.PUSHI]); break;
-                case "j":       asmIdentifier.AddRange([(byte)Op.PUSH8, 1, (byte)Op.PUSHI]); break;
-                case "k":       asmIdentifier.AddRange([(byte)Op.PUSH8, 2, (byte)Op.PUSHI]); break;
-                case "l":       asmIdentifier.AddRange([(byte)Op.PUSH8, 3, (byte)Op.PUSHI]); break;
-                case "halt":    asmIdentifier.Add((byte)Op.HALT); break;
+                case "pop":     AddByte((byte)Op.POP); break;
+                case "dup":     AddByte((byte)Op.DUP); break;
+                case "swap":    AddByte((byte)Op.SWAP); break;
+                case "over":    AddByte((byte)Op.OVER); break;
+                case "rot":     AddByte((byte)Op.ROT); break;
+                case "+":       AddByte((byte)Op.ADD); break;
+                case "-":       AddByte((byte)Op.SUB); break;
+                case "*":       AddByte((byte)Op.MUL); break;
+                case "/":       AddByte((byte)Op.DIV); break;
+                case "load":    AddByte((byte)Op.LOAD); break;
+                case "store":   AddByte((byte)Op.STORE); break;
+                case "len":     AddByte((byte)Op.SIZE); break;
+                case "emit":    AddByte((byte)Op.OUTCHAR); break;
+                case "display": AddByte((byte)Op.OUTINT); break;
+                case "addr":    AddByte((byte)Op.ADDR); break;
+                case "=":       AddByte((byte)Op.EQU); break;
+                case ">":       AddByte((byte)Op.GREATER); break;
+                case "<":       AddByte((byte)Op.LESS); break;
+                case ">=":      AddByte((byte)Op.GEQ); break;
+                case "<=":      AddByte((byte)Op.LEQ); break;
+                case "~":       AddByte((byte)Op.INVERT); break;
+                case "&":       AddByte((byte)Op.AND); break;
+                case "|":       AddByte((byte)Op.OR); break;
+                case "^":       AddByte((byte)Op.XOR); break;
+                case "<<":      AddByte((byte)Op.SLEFT); break;
+                case ">>":      AddByte((byte)Op.SRIGHT); break;
+                case "if":      AddByte((byte)Op.IF); break;
+                case "endif":   AddByte((byte)Op.ENDIF); break;
+                case "else":    AddByte((byte)Op.ELSE); break;
+                case "loop":    AddByte((byte)Op.LOOP); break;
+                case "repeat":  AddByte((byte)Op.REPEAT); break;
+                case "for":     AddByte((byte)Op.FOR); break;
+                case "next":    AddByteRange([(byte)Op.ADDI, (byte)Op.NEXT]); break;
+                case "break":   AddByte((byte)Op.BREAK); break;
+                case "i":       AddByteRange([(byte)Op.PUSH8, 0, (byte)Op.PUSHI]); break;
+                case "j":       AddByteRange([(byte)Op.PUSH8, 1, (byte)Op.PUSHI]); break;
+                case "k":       AddByteRange([(byte)Op.PUSH8, 2, (byte)Op.PUSHI]); break;
+                case "l":       AddByteRange([(byte)Op.PUSH8, 3, (byte)Op.PUSHI]); break;
+                case "halt":    AddByte((byte)Op.HALT); break;
                 case "end":
-                    asmIdentifier.Add((byte)Op.END);
-                    if (regionDefInfo.HasValue)
-                    {
-                        MemoryRegionInfo info = regionDefInfo.GetValueOrDefault();
-                        AssembleRegionDef(info.Type, info.Label, info.Size, info.StartIdx);
-                        regionDefInfo = null;
-                    }
+                    currentRegion = -1;
                     break;
                 default:
                     byte[] id = TryCreateLabel(identifier);
-                    asmIdentifier.AddRange([
-                        (byte)Op.PUSHPTR,
+                    AddByte((byte)Op.PUSHPTR);
+                    regions[currentRegion].AddPointer();
+                    AddByteRange([
                         id[0],
                         id[1],
                         (byte)Op.CALL
                     ]);
                     break;
             }
-
-            bytes.AddRange(asmIdentifier);
         }
 
         /// <summary>
@@ -408,14 +386,22 @@ namespace MintCompiler
             lexer.ResetLexer();
         }
 
-        private enum RegionType { INT8 = 1, INT16 = 2, POINTER = 3, INT32 = 4 }
-
-        private struct MemoryRegionInfo(string label, int startIdx, RegionType type=RegionType.INT8, ushort size=0)
+        /// <summary>
+        /// Adds a byte to the current region.
+        /// </summary>
+        /// <param name="b">Byte</param>
+        private void AddByte(byte b)
         {
-            public string Label = label;
-            public RegionType Type = type;
-            public ushort Size = size;
-            public int StartIdx = startIdx;
+            regions[currentRegion].Data.Add(b);
+        }
+
+        /// <summary>
+        /// Adds a range of bytes to the current region.
+        /// </summary>
+        /// <param name="b">Byte array</param>
+        private void AddByteRange(byte[] b)
+        {
+            regions[currentRegion].Data.AddRange(b);
         }
     }
 }

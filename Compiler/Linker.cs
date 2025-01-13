@@ -36,10 +36,16 @@ namespace MintCompiler
 
             foreach (CompiledObject obj in objects)
             {
-                Dictionary<ushort, byte[]> replaceIds = CheckReferences(obj.Labels);
-                List<byte> bytes = LinkReferences(obj.Instructions, replaceIds);
-
-                output.AddRange(bytes);
+                if (obj.Valid)
+                {
+                    Dictionary<ushort, byte[]> replaceIds = CheckReferences(obj.Labels);
+                    LinkReferences(obj, replaceIds);
+                    
+                    foreach (MemoryRegion region in obj.Regions)
+                    {
+                        output.AddRange(region.Data);
+                    }
+                }
             }
 
             output.InsertRange(0, CreateMetadata());
@@ -63,51 +69,10 @@ namespace MintCompiler
             List<CompiledObject> compiledObjects = [];
             foreach (string file in files)
             {
-                compiledObjects.Add(Deserialize(File.ReadAllBytes(file)));
+                compiledObjects.Add(new CompiledObject(file));
             }
 
             return Link(compiledObjects);
-        }
-
-        /// <summary>
-        /// Deserializes bytecode.
-        /// </summary>
-        /// <param name="bytes">Raw bytecode</param>
-        /// <returns>CompiledObject</returns>
-        private static CompiledObject Deserialize(byte[] bytes)
-        {
-            ushort objNumRefs = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(4, 2));
-
-            ushort labelsCount = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(8, 2));
-            Dictionary<string, byte[]> objLabels = [];
-
-            int byteI = 10;
-
-            for (int i = 0; i < labelsCount; i++)
-            {
-                byte[] labelId = bytes[byteI..(byteI+2)];
-                byteI += 2;
-
-                byte stringLen = bytes[byteI];
-                byteI++;
-
-                List<char> stringBytes = [];
-                for (int j = 0; j < stringLen; j++)
-                {
-                    stringBytes.Add((char)bytes[byteI++]);
-                }
-
-                objLabels.Add(string.Join("", stringBytes), labelId);
-            }
-
-            List<byte> instructions = [];
-            while (byteI < bytes.Length)
-            {
-                instructions.Add(bytes[byteI++]);
-            }
-            instructions.Add((byte)Op.END_FILE);
-
-            return new([.. instructions], objLabels, objNumRefs);
         }
 
         /// <summary>
@@ -170,65 +135,21 @@ namespace MintCompiler
         /// <summary>
         /// Prepares raw data for linking by replacing internal IDs with their global counterparts.
         /// </summary>
-        /// <param name="bytes">Raw object file data</param>
+        /// <param name="obj">Deserialized object</param>
         /// <param name="replaceIds">Dictionary containing internal IDs and their replacements</param>
-        /// <returns>Updated raw data</returns>
-        private static List<byte> LinkReferences(byte[] bytes, Dictionary<ushort, byte[]> replaceIds)
+        private static void LinkReferences(CompiledObject obj, Dictionary<ushort, byte[]> replaceIds)
         {
-            List<byte> newBytes = [];
-
-            int byteI = 0;
-            int skipBytes = 0;
-
-            // TODO: refactor this
-            while (skipBytes > 0 || bytes[byteI] != (byte)Op.END_FILE)
+            foreach (MemoryRegion region in obj.Regions)
             {
-                // If we come across push instructions, skip the immediate values
-                if (skipBytes == 0 && bytes[byteI] == (byte)Op.PUSH8) skipBytes = 2;
-                else if (skipBytes == 0 && bytes[byteI] == (byte)Op.PUSH16) skipBytes = 3;
-                else if (skipBytes == 0 && bytes[byteI] == (byte)Op.PUSH32) skipBytes = 5;
-                else if (skipBytes == 0 && bytes[byteI] == (byte)Op.DEF)
+                foreach (ushort idx in region.PointerIndices)
                 {
-                    newBytes.Add(bytes[byteI++]); // instruction
+                    byte[] localId = [.. region.Data.GetRange(idx, 2)];
+                    byte[] globalId = GetReplacementID(localId, replaceIds);
 
-                    byte type = bytes[byteI];
-                    newBytes.Add(bytes[byteI++]); // type
-
-                    byte[] idArr = [bytes[byteI++], bytes[byteI++]];
-                    newBytes.AddRange(GetReplacementID(idArr, replaceIds));
-
-                    byte[] sizeArr = [bytes[byteI], bytes[byteI+1]];
-                    ushort size = BinaryPrimitives.ReadUInt16BigEndian(sizeArr);
-                    newBytes.Add(bytes[byteI++]);
-                    newBytes.Add(bytes[byteI++]);
-
-                    if (type == 3)
-                    {
-                        for (int i = 0; i < size / 2; i++)
-                        {
-                            byte[] pointerId = [bytes[byteI++], bytes[byteI++]];
-                            newBytes.AddRange(GetReplacementID(pointerId, replaceIds));
-                        }
-                    }
-
-                    continue;
+                    region.Data[idx] = globalId[0];
+                    region.Data[idx+1] = globalId[1];
                 }
-                else if (skipBytes == 0 && bytes[byteI] == (byte)Op.PUSHPTR)
-                {
-                    newBytes.Add(bytes[byteI++]);
-
-                    byte[] idArr = [bytes[byteI++], bytes[byteI++]];
-                    newBytes.AddRange(GetReplacementID(idArr, replaceIds));
-
-                    continue;
-                }
-                
-                if (skipBytes > 0) skipBytes--;
-
-                newBytes.Add(bytes[byteI++]);
             }
-
-            return newBytes;
         }
 
         /// <summary>

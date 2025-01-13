@@ -36,11 +36,7 @@ namespace MintCompiler
                 Lexer lexer = new(preprocessorData.ProcessedCode);
 
                 Compiler compiler = new(lexer);
-                CompiledObject obj = compiler.Assemble();
-
-                Linker linker = new();
-                List<byte> linkedBytes = linker.Link([obj]);
-                File.WriteAllBytes(dest, [.. linkedBytes]);
+                File.WriteAllBytes(dest, [.. compiler.Assemble()]);
             }
             else if (mode == "-cx")
             {
@@ -49,12 +45,10 @@ namespace MintCompiler
                 Lexer lexer = new(preprocessorData.ProcessedCode);
 
                 Compiler compiler = new(lexer);
-                CompiledObject obj = compiler.Assemble();
+                string tempObjPath = dest + ".mo";
+                File.WriteAllBytes(tempObjPath, [.. compiler.Assemble()]);
 
                 Linker linker = new();
-                string tempObjPath = dest + ".mo"; // Create temporary object file
-                File.WriteAllBytes(tempObjPath, [.. linker.Link([obj])]);
-
                 List<string> linkFiles = preprocessorData.Imports;
                 linkFiles.Add(tempObjPath);
 

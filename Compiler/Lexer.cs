@@ -64,6 +64,11 @@ namespace MintCompiler
                 }
                 else if (c == ')')
                 {
+                    if (tokenChars.Count > 1)
+                    {
+                        HandleToken(tokenChars);
+                        tokenChars = [];
+                    }
                     tokens.Add(new Token(TokenType.PAREN_CLOSE, ")"));
                     continue;
                 }
