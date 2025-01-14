@@ -304,6 +304,14 @@ namespace MintCompiler
                     AddByte((byte)Op.END);
                     currentRegion = -1;
                     break;
+                
+                case "READC!":  AssembleLiteralNum(1); break;
+                case "WRITEC!":  AssembleLiteralNum(2); break;
+                case "GETARG1!":  AssembleLiteralNum(3); break;
+                case "GETARG2!":  AssembleLiteralNum(4); break;
+                case "GETARG3!":  AssembleLiteralNum(5); break;
+                case "GETARG4!":  AssembleLiteralNum(6); break;
+
                 default:
                     byte[] id = TryCreateLabel(identifier);
                     AddByte((byte)Op.PUSH16);

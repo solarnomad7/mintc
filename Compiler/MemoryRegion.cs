@@ -4,11 +4,12 @@ namespace MintCompiler
 {
     public class MemoryRegion
     {
-        public const int HeaderLength = 7;
+        public const int HeaderLength = 10;
         
         public List<byte> Data { get; set; } = [];
         public byte[] Id { get; set; }
-        public ushort Length { get; }
+        public ushort Size { get; }
+        public ushort DataLength { get; }
         public List<ushort> PointerIndices { get; }= [];
         
         private readonly RegionType type;
@@ -18,7 +19,7 @@ namespace MintCompiler
         {
             this.type = type;
             Id = id;
-            Length = initLen;
+            Size = initLen;
         }
 
         /// <summary>
@@ -31,20 +32,24 @@ namespace MintCompiler
             byte[] regBytes = bytes[startIdx ..];
 
             type = (RegionType)regBytes[0x01];
-            Length = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x02], regBytes[0x03]]);
-            Id = [regBytes[0x04], regBytes[0x05]];
-            numPointers = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x06], regBytes[0x07]]);
+            Size = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x02], regBytes[0x03]]);
+            DataLength = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x04], regBytes[0x05]]);
+            Id = [regBytes[0x06], regBytes[0x07]];
+            numPointers = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x08], regBytes[0x09]]);
 
-            int byteI = 0x08;
+            int byteI = 0x0A;
+            Console.WriteLine(numPointers);
             for (int i = 0; i < numPointers; i++)
             {
                 PointerIndices.Add(BinaryPrimitives.ReadUInt16BigEndian([regBytes[byteI++], regBytes[byteI++]]));
             }
 
-            for (int i = 0; i < Length; i++)
+            for (int i = 0; i < DataLength; i++)
             {
+                Console.WriteLine(i + ": " + "{0:X}",regBytes[byteI]);
                 Data.Add(regBytes[byteI++]);
             }
+            Console.WriteLine("---");
         }
 
         /// <summary>
@@ -63,13 +68,14 @@ namespace MintCompiler
         public List<byte> Serialize()
         {
             List<byte> serData = [(byte)Op.DEF, (byte)type];
-            ushort serLength = Length;
+            ushort serSize = Size;
 
-            if (serLength == 0)
+            if (serSize == 0)
             {
-                serLength = (ushort)Data.Count;
+                serSize = (ushort)Data.Count;
             }
-            serData.AddRange(IntUtility.GetUInt16Bytes(serLength));
+            serData.AddRange(IntUtility.GetUInt16Bytes(serSize));
+            serData.AddRange(IntUtility.GetUInt16Bytes((ushort)Data.Count));
             serData.AddRange(Id);
             serData.AddRange(IntUtility.GetUInt16Bytes(numPointers));
             foreach (ushort pointerIdx in PointerIndices)

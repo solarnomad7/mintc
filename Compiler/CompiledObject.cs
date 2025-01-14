@@ -45,7 +45,7 @@ namespace MintCompiler
             {
                 MemoryRegion newRegion = new(bytes, byteI);
                 Regions.Add(newRegion);
-                byteI += newRegion.Length + MemoryRegion.HeaderLength + 1;
+                byteI += newRegion.DataLength + MemoryRegion.HeaderLength + (newRegion.PointerIndices.Count * 2);
             }
             
             Valid = true;

@@ -6,7 +6,14 @@ namespace MintCompiler
 {
     public class Linker
     {
-        private readonly Dictionary<string, byte[]> linkedLabels = [];
+        private readonly Dictionary<string, byte[]> linkedLabels = new()
+        {
+            {"TERMINAL", IntUtility.GetUInt16Bytes(0)},
+            {"TERMINAL.args", IntUtility.GetUInt16Bytes(1)},
+            {"TERMINAL.readc", IntUtility.GetUInt16Bytes(2)},
+            {"TERMINAL.writec", IntUtility.GetUInt16Bytes(3)},
+        };
+        private const int reservedPointers = 4;
 
         private ushort numRefs = 0;
         private ushort nextFreeRef = 0;
@@ -18,9 +25,8 @@ namespace MintCompiler
         /// <returns>Linked bytecode</returns>
         public List<byte> Link(List<CompiledObject> objects)
         {
-            linkedLabels.Clear();
             numRefs = 0;
-            nextFreeRef = 0;
+            nextFreeRef = reservedPointers;
 
             List<byte> output = [];
 
@@ -62,7 +68,6 @@ namespace MintCompiler
         /// <returns>Linked bytecode</returns>
         public List<byte> Link(List<string> files)
         {
-            linkedLabels.Clear();
             numRefs = 0;
             nextFreeRef = 0;
 
@@ -117,15 +122,18 @@ namespace MintCompiler
         private List<byte> CreateMetadata()
         {
             List<byte> metadata = [];
-            metadata.AddRange(IntUtility.GetUInt16Bytes((ushort)linkedLabels.Count));
+            metadata.AddRange(IntUtility.GetUInt16Bytes((ushort)(linkedLabels.Count - reservedPointers)));
 
             foreach (KeyValuePair<string, byte[]> label in linkedLabels)
             {
-                metadata.AddRange(label.Value);
-                metadata.Add((byte)label.Key.Length);
-                foreach (char c in label.Key)
+                if (BinaryPrimitives.ReadUInt16BigEndian(label.Value) > reservedPointers - 1)
                 {
-                    metadata.Add((byte)c);
+                    metadata.AddRange(label.Value);
+                    metadata.Add((byte)label.Key.Length);
+                    foreach (char c in label.Key)
+                    {
+                        metadata.Add((byte)c);
+                    }
                 }
             }
 
