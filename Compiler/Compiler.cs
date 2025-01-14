@@ -270,6 +270,7 @@ namespace MintCompiler
                 case "-":       AddByte((byte)Op.SUB); break;
                 case "*":       AddByte((byte)Op.MUL); break;
                 case "/":       AddByte((byte)Op.DIV); break;
+                case "%":       AddByte((byte)Op.MOD); break;
                 case "load":    AddByte((byte)Op.LOAD); break;
                 case "store":   AddByte((byte)Op.STORE); break;
                 case "len":     AddByte((byte)Op.SIZE); break;
