@@ -38,7 +38,6 @@ namespace MintCompiler
             numPointers = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x08], regBytes[0x09]]);
 
             int byteI = 0x0A;
-            Console.WriteLine(numPointers);
             for (int i = 0; i < numPointers; i++)
             {
                 PointerIndices.Add(BinaryPrimitives.ReadUInt16BigEndian([regBytes[byteI++], regBytes[byteI++]]));
@@ -46,10 +45,8 @@ namespace MintCompiler
 
             for (int i = 0; i < DataLength; i++)
             {
-                Console.WriteLine(i + ": " + "{0:X}",regBytes[byteI]);
                 Data.Add(regBytes[byteI++]);
             }
-            Console.WriteLine("---");
         }
 
         /// <summary>
