@@ -31,8 +31,6 @@ namespace MintCompiler
         SWAP            = 0x42,
         OVER            = 0x43,
         ROT             = 0x44,
-        OUTINT          = 0x50,
-        OUTCHAR         = 0x51,
         ADD             = 0x60,
         SUB             = 0x61,
         MUL             = 0x62,
