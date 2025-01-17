@@ -299,17 +299,28 @@ namespace MintCompiler
                 case "k":       AddByteRange([(byte)Op.PUSH8, 2, (byte)Op.PUSHI]); break;
                 case "l":       AddByteRange([(byte)Op.PUSH8, 3, (byte)Op.PUSHI]); break;
                 case "halt":    AddByte((byte)Op.HALT); break;
+                case ";":
+                    currentRegion = -1;
+                    break;
                 case "end":
                     AddByte((byte)Op.END);
                     currentRegion = -1;
                     break;
-                
-                case "READC!":  AssembleLiteralNum(1); break;
-                case "WRITEC!":  AssembleLiteralNum(2); break;
-                case "GETARG1!":  AssembleLiteralNum(3); break;
-                case "GETARG2!":  AssembleLiteralNum(4); break;
-                case "GETARG3!":  AssembleLiteralNum(5); break;
-                case "GETARG4!":  AssembleLiteralNum(6); break;
+
+                case "READC!":      AssembleLiteralNum(1); break;
+                case "WRITEC!":     AssembleLiteralNum(2); break;
+                case "GETARG1!":    AssembleLiteralNum(3); break;
+                case "GETARG2!":    AssembleLiteralNum(4); break;
+                case "GETARG3!":    AssembleLiteralNum(5); break;
+                case "GETARG4!":    AssembleLiteralNum(6); break;
+                case "READPAGE!":   AssembleLiteralNum(1); break;
+                case "WRITEPAGE!":  AssembleLiteralNum(2); break;
+                case "READF!":      AssembleLiteralNum(1); break;
+                case "WRITEF!":     AssembleLiteralNum(2); break;
+                case "APPENDF!":    AssembleLiteralNum(3); break;
+                case "READFP!":     AssembleLiteralNum(4); break;
+                case "WRITEFP!":    AssembleLiteralNum(5); break;
+                case "APPENDFP!":   AssembleLiteralNum(6); break;
 
                 default:
                     byte[] id = TryCreateLabel(identifier);
