@@ -321,6 +321,7 @@ namespace MintCompiler
                 case "READFP!":     AssembleLiteralNum(4); break;
                 case "WRITEFP!":    AssembleLiteralNum(5); break;
                 case "APPENDFP!":   AssembleLiteralNum(6); break;
+                case "FILELEN!":    AssembleLiteralNum(7); break;
 
                 default:
                     byte[] id = TryCreateLabel(identifier);
