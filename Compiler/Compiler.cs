@@ -286,6 +286,8 @@ namespace MintCompiler
                 case "^":       AddByte((byte)Op.XOR); break;
                 case "<<":      AddByte((byte)Op.SLEFT); break;
                 case ">>":      AddByte((byte)Op.SRIGHT); break;
+                case "**":      AddByte((byte)Op.POW); break;
+                case "abs":     AddByte((byte)Op.ABS); break;
                 case "if":      AddByte((byte)Op.IF); break;
                 case "endif":   AddByte((byte)Op.ENDIF); break;
                 case "else":    AddByte((byte)Op.ELSE); break;
