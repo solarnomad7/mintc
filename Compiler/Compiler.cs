@@ -304,6 +304,7 @@ namespace MintCompiler
                 case "k":       AddByteRange([(byte)Op.PUSH8, 2, (byte)Op.PUSHI]); break;
                 case "l":       AddByteRange([(byte)Op.PUSH8, 3, (byte)Op.PUSHI]); break;
                 case "halt":    AddByte((byte)Op.HALT); break;
+                case "call":    AddByte((byte)Op.CALL); break;
                 case ";":
                     currentRegion = -1;
                     break;
