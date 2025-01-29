@@ -66,8 +66,8 @@ namespace MintCompiler
                         AssembleLiteralNum(Convert.ToInt32(token.Content));
                         break;
                     case TokenType.LITERAL_ARR_BEGIN:
-                        (List<int> array, IntSize? intSize, bool pointerArray) = CollectArrayValues();
-                        if (intSize != null) AssembleRawArrayData(array, intSize.GetValueOrDefault(), pointerArray);
+                        (List<int> array, bool pointerArray) = CollectArrayValues();
+                        AssembleRawArrayData(array, regions[currentRegion].Type, pointerArray);
                         break;
                     case TokenType.LITERAL_STR:
                         AssembleLiteralString(token.Content, true);
@@ -211,15 +211,15 @@ namespace MintCompiler
         /// Assembles raw array data without push instructions.
         /// </summary>
         /// <param name="array">Array data</param>
-        /// <param name="bits">Array item size</param>
+        /// <param name="type">Array type</param>
         /// <param name="pointerArray">This is an array of pointers</param>
-        private void AssembleRawArrayData(List<int> array, IntSize bits, bool pointerArray=false)
+        private void AssembleRawArrayData(List<int> array, RegionType type, bool pointerArray=false)
         {
-            if (bits == IntSize.INT8)
+            if (type == RegionType.INT8)
             {
                 AddByteRange(array.Select(v => (byte)v).ToArray());
             }
-            else if (bits == IntSize.INT16)
+            else if (type == RegionType.INT16)
             {
                 if (pointerArray) regions[currentRegion].AddPointer();
                 foreach (int v in array)
@@ -227,7 +227,7 @@ namespace MintCompiler
                     AddByteRange(IntUtility.GetInt16Bytes((short)v));
                 }
             }
-            else if (bits == IntSize.INT32)
+            else if (type == RegionType.INT32)
             {
                 foreach (int v in array)
                 {
@@ -360,12 +360,10 @@ namespace MintCompiler
         /// <summary>
         /// Collects array values (integers or pointers) into a list.
         /// </summary>
-        /// <returns>Tuple containing a list with all array values, the maximum integer size, and a boolean
-        /// that's true if the array contains pointers.</returns>
-        private (List<int>, IntSize?, bool) CollectArrayValues()
+        /// <returns>Tuple containing a list with all array values and a boolean that's true if the array contains pointers.</returns>
+        private (List<int>, bool) CollectArrayValues()
         {
             List<int> array = [];
-            int largest = 0;
             bool pointerArray = false;
 
             Token content = lexer.NextToken();
@@ -375,8 +373,6 @@ namespace MintCompiler
                 {
                     int val = Convert.ToInt32(content.Content);
                     array.Add(val);
-
-                    largest = (val > largest) ? val : largest;
                 }
                 else if (content.Type == TokenType.IDENTIFIER_PREFIX && content.Content == "@")
                 {
@@ -394,9 +390,7 @@ namespace MintCompiler
                 content = lexer.NextToken();
             }
 
-            IntSize? intSize = pointerArray ? IntSize.INT16 : IntUtility.GetIntSize(largest);
-
-            return (array, intSize, pointerArray);
+            return (array, pointerArray);
         }
 
         /// <summary>

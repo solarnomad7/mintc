@@ -10,14 +10,14 @@ namespace MintCompiler
         public byte[] Id { get; set; }
         public ushort Size { get; }
         public ushort DataLength { get; }
-        public List<ushort> PointerIndices { get; }= [];
-        
-        private readonly RegionType type;
+        public List<ushort> PointerIndices { get; } = [];
+        public RegionType Type { get; }
+
         private ushort numPointers = 0;
 
         public MemoryRegion(RegionType type, byte[] id, ushort initLen=0)
         {
-            this.type = type;
+            Type = type;
             Id = id;
             Size = initLen;
         }
@@ -31,7 +31,7 @@ namespace MintCompiler
         {
             byte[] regBytes = bytes[startIdx ..];
 
-            type = (RegionType)regBytes[0x01];
+            Type = (RegionType)regBytes[0x01];
             Size = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x02], regBytes[0x03]]);
             DataLength = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x04], regBytes[0x05]]);
             Id = [regBytes[0x06], regBytes[0x07]];
@@ -64,7 +64,7 @@ namespace MintCompiler
         /// <returns>Serialized bytes</returns>
         public List<byte> Serialize()
         {
-            List<byte> serData = [(byte)Op.DEF, (byte)type];
+            List<byte> serData = [(byte)Op.DEF, (byte)Type];
             ushort serSize = Size;
 
             if (serSize == 0)
