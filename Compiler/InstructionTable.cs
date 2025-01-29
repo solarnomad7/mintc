@@ -31,6 +31,8 @@ namespace MintCompiler
         SWAP            = 0x42,
         OVER            = 0x43,
         ROT             = 0x44,
+        THIRD           = 0x45,
+        FOURTH          = 0x46,
         ADD             = 0x60,
         SUB             = 0x61,
         MUL             = 0x62,
