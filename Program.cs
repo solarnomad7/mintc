@@ -6,6 +6,10 @@ namespace MintCompiler
 {
     static class Program
     {
+        private static readonly string[] objFilePaths = new string[] {
+            "/lib"
+        };
+
         static void Main(string[] args)
         {
             string mode = args[0].ToLower();
@@ -52,9 +56,37 @@ namespace MintCompiler
                 List<string> linkFiles = preprocessorData.Imports;
                 linkFiles.Add(tempObjPath);
 
-                File.WriteAllBytes(dest, [.. linker.Link(linkFiles)]);
+                File.WriteAllBytes(dest, [.. linker.Link(GetObjectFilePaths(linkFiles))]);
                 File.Delete(tempObjPath);
             }
+        }
+
+        static List<string> GetObjectFilePaths(List<string> files)
+        {
+            List<string> paths = [];
+
+            foreach (string file in files)
+            {
+                if (!File.Exists(file)) // File not found in working directory
+                {
+                    foreach (string searchPath in objFilePaths)
+                    {
+                        string workingDir = Directory.GetCurrentDirectory();
+                        string path = Path.Combine(workingDir, searchPath, file);
+
+                        if (!File.Exists(path))
+                        {
+                            Console.WriteLine("mintc: Could not find " + file);
+                        }
+                        else
+                        {
+                            paths.Add(path);
+                        }
+                    }
+                }
+            }
+
+            return paths;
         }
     }
 }
