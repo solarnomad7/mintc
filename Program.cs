@@ -6,12 +6,18 @@ namespace MintCompiler
 {
     static class Program
     {
-        private static readonly string[] objFilePaths = new string[] {
+        private static readonly string[] objFilePaths = [
             "/lib"
-        };
+        ];
 
         static void Main(string[] args)
         {
+            if (args.Length == 0)
+            {
+                DisplayHelp();
+                return;
+            }
+
             string mode = args[0].ToLower();
             string source = args[1];
 
@@ -87,6 +93,22 @@ namespace MintCompiler
             }
 
             return paths;
+        }
+
+        static void DisplayHelp()
+        {
+            Console.WriteLine("Usage: mintc [mode] <files...>");
+            Console.WriteLine();
+            Console.WriteLine("Modes:");
+            Console.WriteLine("\t-co <source> <destination>");
+            Console.WriteLine("\t\tCompile an object or library file.");
+            Console.WriteLine("\t-cx <source> <destination>");
+            Console.WriteLine("\t\tCompile and link an executable.");
+            Console.WriteLine("\t-p <source> <destination>");
+            Console.WriteLine("\t\tPreprocess a source file.");
+            Console.WriteLine("\t-t <source>");
+            Console.WriteLine("\t\tTokenize a source file (for debugging purposes).");
+            Console.WriteLine();
         }
     }
 }
