@@ -275,6 +275,27 @@ namespace MintCompiler
         }
 
         /// <summary>
+        /// Assembles a for loop, possibly with a start and end value.
+        /// </summary>
+        private void AssembleForLoop()
+        {
+            Token next = lexer.NextToken();
+            if (next.Type != TokenType.PAREN_OPEN)
+            {
+                AddByte((byte)Op.FOR);
+                lexer.PreviousToken();
+                return;
+            }
+
+            Token lastToken = AssembleInstructions([TokenType.SEPARATOR]);
+            if (lastToken.Content == ",")
+            {
+                AssembleInstructions([TokenType.PAREN_CLOSE]);
+                AddByte((byte)Op.FOR);
+            }
+        }
+
+        /// <summary>
         /// Assembles an identifier, either built-in or user-defined.
         /// </summary>
         /// <param name="identifier">Identifier</param>
@@ -317,7 +338,7 @@ namespace MintCompiler
                 case "else":    AddByte((byte)Op.ELSE); break;
                 case "loop":    AddByte((byte)Op.LOOP); break;
                 case "repeat":  AddByte((byte)Op.REPEAT); break;
-                case "for":     AddByte((byte)Op.FOR); break;
+                case "for":     AssembleForLoop(); break;
                 case "next":    AddByteRange([(byte)Op.ADDI, (byte)Op.NEXT]); break;
                 case "break":   AddByte((byte)Op.BREAK); break;
                 case "i":       AddByteRange([(byte)Op.PUSH8, 0, (byte)Op.PUSHI]); break;
