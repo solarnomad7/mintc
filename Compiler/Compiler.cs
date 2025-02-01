@@ -24,7 +24,7 @@ namespace MintCompiler
             lexer.Tokenize();
 
             GetLabels();
-            AssembleInstructions();
+            AssembleInstructions([TokenType.EOF]);
 
             List<byte> output = [.. "MOBJ"u8.ToArray()];
 
@@ -52,10 +52,12 @@ namespace MintCompiler
         /// <summary>
         /// Loops through tokens produced by the Lexer and assembles them.
         /// </summary>
-        private void AssembleInstructions()
+        /// <param name="endToken">Halt assembly a Token of this type is reached</param>
+        /// <returns>Last token</return>
+        private Token AssembleInstructions(TokenType[] endTokens)
         {
             Token token = lexer.NextToken();
-            while (token.Type != TokenType.EOF)
+            while (!endTokens.Contains(token.Type))
             {
                 switch (token.Type)
                 {
@@ -65,7 +67,7 @@ namespace MintCompiler
                     case TokenType.LITERAL_NUM:
                         AssembleLiteralNum(Convert.ToInt32(token.Content));
                         break;
-                    case TokenType.LITERAL_ARR_BEGIN:
+                    case TokenType.OPEN_BRACKET:
                         (List<int> array, bool pointerArray) = CollectArrayValues();
                         AssembleRawArrayData(array, regions[currentRegion].Type, pointerArray);
                         break;
@@ -85,6 +87,8 @@ namespace MintCompiler
 
                 token = lexer.NextToken();
             }
+
+            return token;
         }
 
         /// <summary>
@@ -251,6 +255,23 @@ namespace MintCompiler
                 regions[currentRegion].AddPointer();
                 AddByteRange(id);
             }
+
+            if (lexer.NextToken().Type != TokenType.OPEN_BRACKET)
+            {
+                lexer.PreviousToken();
+                return;
+            }
+
+            Token lastToken = AssembleInstructions([TokenType.CLOSE_BRACKET, TokenType.SEPARATOR]);
+            if (lastToken.Type == TokenType.CLOSE_BRACKET)
+            {
+                AddByte((byte)Op.LOAD);
+            }
+            else if (lastToken.Type == TokenType.SEPARATOR && lastToken.Content == ":=")
+            {
+                AssembleInstructions([TokenType.CLOSE_BRACKET]);
+                AddByte((byte)Op.STORE);
+            }
         }
 
         /// <summary>
@@ -367,7 +388,7 @@ namespace MintCompiler
             bool pointerArray = false;
 
             Token content = lexer.NextToken();
-            while (content.Type != TokenType.LITERAL_ARR_END)
+            while (content.Type != TokenType.CLOSE_BRACKET)
             {
                 if (content.Type == TokenType.LITERAL_NUM || content.Type == TokenType.LITERAL_CHAR)
                 {

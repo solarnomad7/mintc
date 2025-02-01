@@ -10,14 +10,15 @@ namespace MintCompiler
     {
         LITERAL_NUM = 0,
         LITERAL_CHAR = 1,
-        LITERAL_ARR_BEGIN = 2,
+        OPEN_BRACKET = 2,
         LITERAL_STR = 3,
-        LITERAL_ARR_END = 4,
+        CLOSE_BRACKET = 4,
         IDENTIFIER = 5,
         IDENTIFIER_PREFIX = 6,
         REGION_DEF = 7,
         PAREN_OPEN = 8,
         PAREN_CLOSE = 9,
-        EOF = 10,
+        SEPARATOR = 10,
+        EOF = 11,
     }
 }

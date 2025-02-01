@@ -44,27 +44,37 @@ namespace MintCompiler
                 }
                 else if (c == '[')
                 {
-                    tokens.Add(new Token(TokenType.LITERAL_ARR_BEGIN, "["));
-                    continue;
-                }
-                else if (c == ']')
-                {
-                    if (tokenChars.Count > 1)
+                    if (tokenChars.Count > 0)
                     {
                         HandleToken(tokenChars);
                         tokenChars = [];
                     }
-                    tokens.Add(new Token(TokenType.LITERAL_ARR_END, "]"));
+                    tokens.Add(new Token(TokenType.OPEN_BRACKET, "["));
+                    continue;
+                }
+                else if (c == ']')
+                {
+                    if (tokenChars.Count > 0)
+                    {
+                        HandleToken(tokenChars);
+                        tokenChars = [];
+                    }
+                    tokens.Add(new Token(TokenType.CLOSE_BRACKET, "]"));
                     continue;
                 }
                 else if (c == '(')
                 {
+                    if (tokenChars.Count > 0)
+                    {
+                        HandleToken(tokenChars);
+                        tokenChars = [];
+                    }
                     tokens.Add(new Token(TokenType.PAREN_OPEN, "("));
                     continue;
                 }
                 else if (c == ')')
                 {
-                    if (tokenChars.Count > 1)
+                    if (tokenChars.Count > 0)
                     {
                         HandleToken(tokenChars);
                         tokenChars = [];
@@ -75,6 +85,16 @@ namespace MintCompiler
                 else if (prefixes.Contains(c))
                 {
                     tokens.Add(new Token(TokenType.IDENTIFIER_PREFIX, c.ToString()));
+                    continue;
+                }
+                else if (c == ',')
+                {
+                    if (tokenChars.Count > 0)
+                    {
+                        HandleToken(tokenChars);
+                        tokenChars = [];
+                    }
+                    tokens.Add(new Token(TokenType.SEPARATOR, ","));
                     continue;
                 }
                 else if (c == '"' || c == '\'')
@@ -149,6 +169,10 @@ namespace MintCompiler
             else if (tokenStr.EndsWith(':'))
             {
                 tokens.Add(new Token(TokenType.REGION_DEF, tokenStr[..(tokenStr.Length-1)]));
+            }
+            else if (tokenStr == ":=")
+            {
+                tokens.Add(new Token(TokenType.SEPARATOR, ":="));
             }
             else
             {
