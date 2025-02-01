@@ -7,7 +7,7 @@ namespace MintCompiler
     static class Program
     {
         private static readonly string[] objFilePaths = [
-            "/lib"
+            "lib"
         ];
 
         static void Main(string[] args)
@@ -89,6 +89,10 @@ namespace MintCompiler
                             paths.Add(path);
                         }
                     }
+                }
+                else
+                {
+                    paths.Add(file);
                 }
             }
 
