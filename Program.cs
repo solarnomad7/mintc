@@ -39,7 +39,7 @@ namespace MintCompiler
                     t = lexer.NextToken();
                 }
             }
-            else if (mode == "-co" && args.Length == 4)
+            else if (mode == "-co" && args.Length == 3)
             {
                 string dest = args[2];
                 PreprocessorData preprocessorData = Preprocessor.Process(source);
@@ -47,7 +47,7 @@ namespace MintCompiler
 
                 HandleCompiler(dest, lexer);
             }
-            else if (mode == "-cx" && args.Length == 4)
+            else if (mode == "-cx" && args.Length == 3)
             {
                 string dest = args[2];
                 PreprocessorData preprocessorData = Preprocessor.Process(source);
