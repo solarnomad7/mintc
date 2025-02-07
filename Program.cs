@@ -77,7 +77,14 @@ namespace MintCompiler
         static void HandleLinker(string destFile, List<string> linkFiles)
         {
             Linker linker = new();
-            File.WriteAllBytes(destFile, [.. linker.Link(GetObjectFilePaths(linkFiles))]);
+            try
+            {
+                File.WriteAllBytes(destFile, [.. linker.Link(GetObjectFilePaths(linkFiles))]);
+            }
+            catch (NoMainWordException)
+            {
+                Console.Error.WriteLine("mintc: No main word");
+            }
         }
 
         static List<string> GetObjectFilePaths(List<string> files)

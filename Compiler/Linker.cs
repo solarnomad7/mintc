@@ -89,36 +89,29 @@ namespace MintCompiler
         }
 
         /// <summary>
-        /// Assembles the header, containing in order: signature (MINT or MINL), number of pointers (2 bytes),
+        /// Assembles the header, containing in order: signature, number of pointers (2 bytes),
         /// allocated memory size (4 bytes), and pointer to the main word (2 bytes).
         /// </summary>
         /// <returns>Header in list of bytes</returns>
         private List<byte> CreateHeader()
         {
             List<byte> header = [];
-            // If the program doesn't contain a main word mark it as a library
-            bool hasMainWord = linkedLabels.TryGetValue("main", out byte[]? mainPointer);
-            if (hasMainWord)
+            if (!linkedLabels.TryGetValue("main", out byte[]? mainPointer))
             {
-                header.AddRange("MINT"u8.ToArray());
-            }
-            else
-            {
-                header.AddRange("MINL"u8.ToArray());
+                throw new NoMainWordException();
             }
 
+            foreach (KeyValuePair<string, byte[]> label in linkedLabels)
+            {
+                Console.WriteLine(label);
+            }
+
+            header.AddRange("MINT"u8.ToArray());
             header.AddRange(IntUtility.GetUInt16Bytes(numRefs));
 
-            if (hasMainWord)
-            {
 #pragma warning disable CS8604 // Possible null reference argument.
-                header.AddRange(mainPointer);
+            header.AddRange(mainPointer);
 #pragma warning restore CS8604 // Possible null reference argument.
-            }
-            else
-            {
-                header.AddRange([0, 0]);
-            }
 
             return header;
         }
