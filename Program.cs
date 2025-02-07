@@ -12,7 +12,7 @@ namespace MintCompiler
 
         static void Main(string[] args)
         {
-            if (args.Length == 0)
+            if (args.Length < 2)
             {
                 DisplayHelp();
                 return;
@@ -21,12 +21,12 @@ namespace MintCompiler
             string mode = args[0].ToLower();
             string source = args[1];
 
-            if (mode == "-p")
+            if (mode == "-p" && args.Length == 2)
             {
                 string dest = args[2];
                 File.WriteAllText(dest, Preprocessor.Process(source).ProcessedCode);
             }
-            else if (mode == "-t")
+            else if (mode == "-t" && args.Length == 2)
             {
                 string code = Preprocessor.Process(source).ProcessedCode;
                 Lexer lexer = new(code);
@@ -39,32 +39,45 @@ namespace MintCompiler
                     t = lexer.NextToken();
                 }
             }
-            else if (mode == "-co")
+            else if (mode == "-co" && args.Length == 4)
             {
                 string dest = args[2];
                 PreprocessorData preprocessorData = Preprocessor.Process(source);
                 Lexer lexer = new(preprocessorData.ProcessedCode);
 
-                Compiler compiler = new(lexer);
-                File.WriteAllBytes(dest, [.. compiler.Assemble()]);
+                HandleCompiler(dest, lexer);
             }
-            else if (mode == "-cx")
+            else if (mode == "-cx" && args.Length == 4)
             {
                 string dest = args[2];
                 PreprocessorData preprocessorData = Preprocessor.Process(source);
                 Lexer lexer = new(preprocessorData.ProcessedCode);
 
-                Compiler compiler = new(lexer);
                 string tempObjPath = dest + ".mo";
-                File.WriteAllBytes(tempObjPath, [.. compiler.Assemble()]);
+                if(HandleCompiler(tempObjPath, lexer))
+                {
+                    List<string> linkFiles = preprocessorData.Imports;
+                    linkFiles.Add(tempObjPath);
 
-                Linker linker = new();
-                List<string> linkFiles = preprocessorData.Imports;
-                linkFiles.Add(tempObjPath);
-
-                File.WriteAllBytes(dest, [.. linker.Link(GetObjectFilePaths(linkFiles))]);
-                File.Delete(tempObjPath);
+                    HandleLinker(dest, linkFiles);
+                    File.Delete(tempObjPath);
+                }
             }
+        }
+
+        static bool HandleCompiler(string destFile, Lexer lexer)
+        {
+            Compiler compiler = new(lexer);
+            File.WriteAllBytes(destFile, [.. compiler.Assemble()]);
+            
+            // TODO: handle exceptions
+            return true;
+        }
+
+        static void HandleLinker(string destFile, List<string> linkFiles)
+        {
+            Linker linker = new();
+            File.WriteAllBytes(destFile, [.. linker.Link(GetObjectFilePaths(linkFiles))]);
         }
 
         static List<string> GetObjectFilePaths(List<string> files)
