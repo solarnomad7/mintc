@@ -170,9 +170,9 @@ namespace MintCompiler
             {
                 tokens.Add(new Token(TokenType.REGION_DEF, tokenStr[..(tokenStr.Length-1)]));
             }
-            else if (tokenStr == ":=")
+            else if (tokenStr == "=>")
             {
-                tokens.Add(new Token(TokenType.SEPARATOR, ":="));
+                tokens.Add(new Token(TokenType.SEPARATOR, "=>"));
             }
             else
             {
