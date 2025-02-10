@@ -101,11 +101,6 @@ namespace MintCompiler
                 throw new NoMainWordException();
             }
 
-            foreach (KeyValuePair<string, byte[]> label in linkedLabels)
-            {
-                Console.WriteLine(label);
-            }
-
             header.AddRange("MINT"u8.ToArray());
             header.AddRange(IntUtility.GetUInt16Bytes(numRefs));
 
