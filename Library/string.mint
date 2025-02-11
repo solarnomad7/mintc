@@ -53,6 +53,7 @@ strlen:
             break
         endif
     1 next
+    swap pop
 end
 
 loadstr:
