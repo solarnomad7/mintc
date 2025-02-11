@@ -267,7 +267,7 @@ namespace MintCompiler
             {
                 AddByte((byte)Op.LOAD);
             }
-            else if (lastToken.Type == TokenType.SEPARATOR && lastToken.Content == ":=")
+            else if (lastToken.Type == TokenType.SEPARATOR && lastToken.Content == "=>")
             {
                 AssembleInstructions([TokenType.CLOSE_BRACKET]);
                 AddByte((byte)Op.STORE);
