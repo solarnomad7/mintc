@@ -317,7 +317,8 @@ namespace MintCompiler
                 case "%":       AddByte((byte)Op.MOD); break;
                 case "load":    AddByte((byte)Op.LOAD); break;
                 case "store":   AddByte((byte)Op.STORE); break;
-                case "len":     AddByte((byte)Op.SIZE); break;
+                case "size":    AddByte((byte)Op.SIZE); break;
+                case "bytes":   AddByte((byte)Op.BYTES); break;
                 case "addr":    AddByte((byte)Op.ADDR); break;
                 case "=":       AddByte((byte)Op.EQU); break;
                 case ">":       AddByte((byte)Op.GREATER); break;

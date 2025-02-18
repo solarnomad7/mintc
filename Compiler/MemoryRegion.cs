@@ -19,7 +19,7 @@ namespace MintCompiler
         {
             Type = type;
             Id = id;
-            Size = initLen;
+            Size = (ushort)(initLen * (int)type);
         }
 
         /// <summary>
