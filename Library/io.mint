@@ -30,7 +30,16 @@ getline:
     for
         dup i
         getchar dup
-        '\n' = if break endif
+        _is_eol if
+            pop 0 store
+            break
+        endif
         store
     1 next
+end
+
+_is_eol:
+    dup '\n' =
+    swap 0 =
+    |
 end
