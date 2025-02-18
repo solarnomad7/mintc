@@ -24,3 +24,7 @@ map:
     1 next
     pop pop
 end
+
+len:
+    dup size swap bytes /
+end
