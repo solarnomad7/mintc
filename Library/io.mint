@@ -44,6 +44,12 @@ _is_eol:
     |
 end
 
+getarg:
+    swap
+    @TERMINAL.args 0 rot store
+    @TERMINAL 0 rot 2 + store
+end
+
 _len:
     dup size swap bytes /
 end
