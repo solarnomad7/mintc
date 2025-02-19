@@ -39,17 +39,17 @@ namespace MintCompiler
 
             List<string> lines = [.. code.Split('\n')];
 
-            string[] pLines = lines.Where(l => l.Trim().StartsWith('/')).ToArray();
+            string[] pLines = lines.Where(l => l.Trim().StartsWith('#')).ToArray();
             foreach (string line in pLines)
             {
                 string[] tokens = line.Split(' ');
 
                 switch (tokens[0])
                 {
-                    case "/include":
+                    case "#include":
                         pData.Includes.Add(tokens[1].Trim());
                         break;
-                    case "/import":
+                    case "#import":
                         pData.Imports.Add(tokens[1].Trim());
                         break;
                 }
