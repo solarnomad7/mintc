@@ -9,7 +9,7 @@ readpage:
 end
 
 _rwpage_ready:
-    dup len
+    dup dup size swap bytes /
     @PAGE.rwsize 1 rot store
     @PAGE.src 0 rot store
     @PAGE.rwsize 0 rot store

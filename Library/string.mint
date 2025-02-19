@@ -40,9 +40,12 @@ _str>int:
 end
 
 strlen:
-    dup len 0 swap
+    dup
+    dup size swap bytes /   # len from array.mo
+    0 swap
     for
-        dup len
+        dup
+        dup size swap bytes /
         1 - i = if
             i 1 +
             break 
@@ -57,7 +60,7 @@ strlen:
 end
 
 loadstr:
-    strlen dup rot swap
+    dup strlen dup rot swap
     1 - -1 for
         dup i load swap rot swap
     -1 next
@@ -72,7 +75,7 @@ storestr:
 end
 
 compstr:
-    strlen rot strlen rot
+    dup strlen rot dup strlen rot
     dup rot
     = if
         0 swap for

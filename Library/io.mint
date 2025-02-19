@@ -6,7 +6,7 @@ print:
 end
 
 printstr:
-    dup len 0 swap
+    dup _len 0 swap
     for
         dup i load
         dup 0 = if break endif
@@ -26,7 +26,7 @@ getchar:
 end
 
 getline:
-    dup len 0 swap
+    dup _len 0 swap
     for
         dup i
         getchar dup
@@ -42,4 +42,8 @@ _is_eol:
     dup '\n' =
     swap 0 =
     |
+end
+
+_len:
+    dup size swap bytes /
 end
