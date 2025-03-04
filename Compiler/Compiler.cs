@@ -362,15 +362,10 @@ namespace MintCompiler
                 case "GETARG2!":    AssembleLiteralNum(4); break;
                 case "GETARG3!":    AssembleLiteralNum(5); break;
                 case "GETARG4!":    AssembleLiteralNum(6); break;
-                case "READPAGE!":   AssembleLiteralNum(1); break;
-                case "WRITEPAGE!":  AssembleLiteralNum(2); break;
                 case "READF!":      AssembleLiteralNum(1); break;
                 case "WRITEF!":     AssembleLiteralNum(2); break;
                 case "APPENDF!":    AssembleLiteralNum(3); break;
-                case "READFP!":     AssembleLiteralNum(4); break;
-                case "WRITEFP!":    AssembleLiteralNum(5); break;
-                case "APPENDFP!":   AssembleLiteralNum(6); break;
-                case "FILELEN!":    AssembleLiteralNum(7); break;
+                case "FILELEN!":    AssembleLiteralNum(4); break;
 
                 default:
                     byte[] id = TryCreateLabel(identifier);
