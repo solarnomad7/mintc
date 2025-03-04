@@ -107,14 +107,14 @@ namespace MintCompiler
             }
 
             RegionType type = RegionType.INT8;
-            ushort len = 0;
+            uint len = 0;
 
             for (int i = 0; i < 2; i++)
             {
                 token = lexer.NextToken();
                 if (token.Type != TokenType.PAREN_CLOSE)
                 {
-                    (RegionType? typeOrNull, ushort? sizeOrNull) = GetRegionSigData(token);
+                    (RegionType? typeOrNull, uint? sizeOrNull) = GetRegionSigData(token);
                     if (typeOrNull.HasValue) type = typeOrNull.GetValueOrDefault();
                     else if (sizeOrNull.HasValue) len = sizeOrNull.GetValueOrDefault();
                 }
@@ -135,7 +135,7 @@ namespace MintCompiler
         /// </summary>
         /// <param name="token">Data token</param>
         /// <returns>Tuple containing either region type or size</returns>
-        private static (RegionType?, ushort?) GetRegionSigData(Token token)
+        private static (RegionType?, uint?) GetRegionSigData(Token token)
         {
             if (token.Type == TokenType.IDENTIFIER)
             {
@@ -158,7 +158,7 @@ namespace MintCompiler
             }
             else if (token.Type == TokenType.LITERAL_NUM)
             {
-                return (null, Convert.ToUInt16(token.Content));
+                return (null, Convert.ToUInt32(token.Content));
             }
             else
             {
