@@ -107,14 +107,14 @@ namespace MintCompiler
             }
 
             RegionType type = RegionType.INT8;
-            ushort len = 0;
+            uint len = 0;
 
             for (int i = 0; i < 2; i++)
             {
                 token = lexer.NextToken();
                 if (token.Type != TokenType.PAREN_CLOSE)
                 {
-                    (RegionType? typeOrNull, ushort? sizeOrNull) = GetRegionSigData(token);
+                    (RegionType? typeOrNull, uint? sizeOrNull) = GetRegionSigData(token);
                     if (typeOrNull.HasValue) type = typeOrNull.GetValueOrDefault();
                     else if (sizeOrNull.HasValue) len = sizeOrNull.GetValueOrDefault();
                 }
@@ -135,7 +135,7 @@ namespace MintCompiler
         /// </summary>
         /// <param name="token">Data token</param>
         /// <returns>Tuple containing either region type or size</returns>
-        private static (RegionType?, ushort?) GetRegionSigData(Token token)
+        private static (RegionType?, uint?) GetRegionSigData(Token token)
         {
             if (token.Type == TokenType.IDENTIFIER)
             {
@@ -158,7 +158,7 @@ namespace MintCompiler
             }
             else if (token.Type == TokenType.LITERAL_NUM)
             {
-                return (null, Convert.ToUInt16(token.Content));
+                return (null, Convert.ToUInt32(token.Content));
             }
             else
             {
@@ -362,15 +362,10 @@ namespace MintCompiler
                 case "GETARG2!":    AssembleLiteralNum(4); break;
                 case "GETARG3!":    AssembleLiteralNum(5); break;
                 case "GETARG4!":    AssembleLiteralNum(6); break;
-                case "READPAGE!":   AssembleLiteralNum(1); break;
-                case "WRITEPAGE!":  AssembleLiteralNum(2); break;
                 case "READF!":      AssembleLiteralNum(1); break;
                 case "WRITEF!":     AssembleLiteralNum(2); break;
                 case "APPENDF!":    AssembleLiteralNum(3); break;
-                case "READFP!":     AssembleLiteralNum(4); break;
-                case "WRITEFP!":    AssembleLiteralNum(5); break;
-                case "APPENDFP!":   AssembleLiteralNum(6); break;
-                case "FILELEN!":    AssembleLiteralNum(7); break;
+                case "FILELEN!":    AssembleLiteralNum(4); break;
 
                 default:
                     byte[] id = TryCreateLabel(identifier);

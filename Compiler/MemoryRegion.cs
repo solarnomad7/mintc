@@ -4,22 +4,22 @@ namespace MintCompiler
 {
     public class MemoryRegion
     {
-        public const int HeaderLength = 10;
+        public const int HeaderLength = 12;
         
         public List<byte> Data { get; set; } = [];
         public byte[] Id { get; set; }
-        public ushort Size { get; }
+        public uint Size { get; }
         public ushort DataLength { get; }
         public List<ushort> PointerIndices { get; } = [];
         public RegionType Type { get; }
 
         private ushort numPointers = 0;
 
-        public MemoryRegion(RegionType type, byte[] id, ushort initLen=0)
+        public MemoryRegion(RegionType type, byte[] id, uint initLen=0)
         {
             Type = type;
             Id = id;
-            Size = (ushort)(initLen * (int)type);
+            Size = (uint)(initLen * (int)type);
         }
 
         /// <summary>
@@ -32,12 +32,12 @@ namespace MintCompiler
             byte[] regBytes = bytes[startIdx ..];
 
             Type = (RegionType)regBytes[0x01];
-            Size = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x02], regBytes[0x03]]);
-            DataLength = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x04], regBytes[0x05]]);
-            Id = [regBytes[0x06], regBytes[0x07]];
-            numPointers = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x08], regBytes[0x09]]);
+            Size = BinaryPrimitives.ReadUInt32BigEndian([regBytes[0x02], regBytes[0x03], regBytes[0x04], regBytes[0x05]]);
+            DataLength = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x06], regBytes[0x07]]);
+            Id = [regBytes[0x08], regBytes[0x09]];
+            numPointers = BinaryPrimitives.ReadUInt16BigEndian([regBytes[0x0A], regBytes[0x0B]]);
 
-            int byteI = 0x0A;
+            int byteI = 0x0C;
             for (int i = 0; i < numPointers; i++)
             {
                 PointerIndices.Add(BinaryPrimitives.ReadUInt16BigEndian([regBytes[byteI++], regBytes[byteI++]]));
@@ -65,13 +65,9 @@ namespace MintCompiler
         public List<byte> Serialize()
         {
             List<byte> serData = [(byte)Op.DEF, (byte)Type];
-            ushort serSize = Size;
+            uint serSize = Size == 0 ? (uint)Data.Count : Size;
 
-            if (serSize == 0)
-            {
-                serSize = (ushort)Data.Count;
-            }
-            serData.AddRange(IntUtility.GetUInt16Bytes(serSize));
+            serData.AddRange(IntUtility.GetUInt32Bytes(serSize));
             serData.AddRange(IntUtility.GetUInt16Bytes((ushort)Data.Count));
             serData.AddRange(Id);
             serData.AddRange(IntUtility.GetUInt16Bytes(numPointers));

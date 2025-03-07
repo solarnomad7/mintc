@@ -9,19 +9,16 @@ namespace MintCompiler
         private readonly Dictionary<string, byte[]> linkedLabels = new()
         {
             {"NULL", IntUtility.GetUInt16Bytes(0)},
-            {"PAGE", IntUtility.GetUInt16Bytes(1)},
-            {"PAGE.src", IntUtility.GetUInt16Bytes(2)},
-            {"PAGE.rwsize", IntUtility.GetUInt16Bytes(3)},
-            {"TERMINAL", IntUtility.GetUInt16Bytes(4)},
-            {"TERMINAL.args", IntUtility.GetUInt16Bytes(5)},
-            {"TERMINAL.readc", IntUtility.GetUInt16Bytes(6)},
-            {"TERMINAL.writec", IntUtility.GetUInt16Bytes(7)},
-            {"FS", IntUtility.GetUInt16Bytes(8)},
-            {"FS.path", IntUtility.GetUInt16Bytes(9)},
-            {"FS.source", IntUtility.GetUInt16Bytes(10)},
-            {"FS.dest", IntUtility.GetUInt16Bytes(11)},
+            {"TERMINAL", IntUtility.GetUInt16Bytes(1)},
+            {"TERMINAL.args", IntUtility.GetUInt16Bytes(2)},
+            {"TERMINAL.readc", IntUtility.GetUInt16Bytes(3)},
+            {"TERMINAL.writec", IntUtility.GetUInt16Bytes(4)},
+            {"FS", IntUtility.GetUInt16Bytes(5)},
+            {"FS.path", IntUtility.GetUInt16Bytes(6)},
+            {"FS.source", IntUtility.GetUInt16Bytes(7)},
+            {"FS.dest", IntUtility.GetUInt16Bytes(8)},
         };
-        private const int reservedPointers = 12;
+        private const int reservedPointers = 9;
 
         private ushort numRefs = 0;
         private ushort nextFreeRef = 0;
