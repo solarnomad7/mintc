@@ -5,7 +5,7 @@ mintc is a compiler for MPL, a Forth-inspired stack-based language designed for 
 While a stack-based paradigm can take some getting used to, MPL syntax is very simple. Code consists of one or more *array* definitions containing *literals* and *words*. Take a look at some examples:
 
 ```
-/import io.mo
+#import io.mo
 
 main:
   "Hello, world!\n" print
@@ -13,9 +13,9 @@ end
 ```
 
 ```
-/import array.mo
-/import io.mo
-/import string.mo
+#import array.mo
+#import io.mo
+#import string.mo
 
 my_numbers: [1 2 3 4 5];
 main:
